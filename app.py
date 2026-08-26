@@ -9,7 +9,7 @@ if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
 
 if not st.session_state['authenticated']:
-    st.title("🔒 초격차 EHS 시스템 접근 제어")
+    st.title("🔒 EHS 시스템 접근 제어")
     st.info("인가된 관리자만 접근할 수 있습니다. 접근 코드(Access Code)를 입력하세요.")
     
     pwd = st.text_input("Access Code", type="password") # 비밀번호 칠 때 까만 점(***)으로 나옴
