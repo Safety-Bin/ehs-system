@@ -10,12 +10,12 @@ if 'authenticated' not in st.session_state:
 
 if not st.session_state['authenticated']:
     st.title("🔒 EHS 시스템 접근 제어")
-    st.info("인가된 관리자만 접근할 수 있습니다. 접근 코드(Access Code)를 입력하세요.")
+    st.info("인가된 관리자만 접근할 수 있습니다. 접근 코드(Access Code)를 입력하세요 (액세스 코드는 1234입니다).")
     
     pwd = st.text_input("Access Code", type="password") # 비밀번호 칠 때 까만 점(***)으로 나옴
     
     if st.button("접속 (Login)"):
-        if pwd == "hynix2026":  # 원하는 비밀번호로 수정 가능 (예: hynix2026)
+        if pwd == "1234":  # 원하는 비밀번호로 수정 가능 (예: hynix2026)
             st.session_state['authenticated'] = True
             st.rerun() # 인증 성공 시 앱 새로고침
         else:
