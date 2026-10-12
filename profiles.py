@@ -175,7 +175,9 @@ def empty_profile(name="새 사업장"):
     profile = {"uid": str(uuid.uuid4()), "schema_version": SCHEMA_VERSION,
                "name": name, "template_id": "", "processes": [],
                "buildings": [], "chemicals": [], "equipment": [],
-               "template_is_example": False, "updated_at": ""}
+               "template_is_example": False, "demo_is_example": False,
+               "demo_id": "", "demo_description": "", "demo_learning_points": [],
+               "updated_at": ""}
     profile.update({key: None for key in NUMERIC_FIELDS})
     profile.update({key: None for key in FLAG_FIELDS})
     profile.update({key: "" for key in TEXT_FIELDS if key != "name"})
@@ -196,6 +198,170 @@ def get_template(template_id):
     return profile
 
 
+def get_demo_profiles():
+    """Return independent, populated fictional workplaces; demo_id is stable for merging.
+
+    Values describe learning scenarios rather than actual companies or legal findings.
+    The function is self-contained so hosted apps need no separate example JSON file.
+    """
+    def building(name, use, structure, gross, footprint, floors, height, permit="사용승인 완료"):
+        return {"name": name, "use": use, "structure": structure,
+                "gross_floor_area_m2": gross, "building_area_m2": footprint,
+                "ground_floors": floors, "basement_floors": 0, "height_m": height,
+                "permit_status": permit}
+
+    def chemical(name, storage_l, daily_kg, annual_kg, note):
+        return {"name": name, "cas": "", "physical_state": "액체",
+                "concentration_pct": None, "max_storage_kg": None,
+                "max_storage_l": storage_l, "daily_use_kg": daily_kg,
+                "annual_use_kg": annual_kg, "hazard_classes": "제품별 SDS·법정 분류 확인 필요",
+                "classification_verified": None, "notes": "가상 제품·가정 수량. " + note}
+
+    def equipment(kind, name, quantity, capacity, unit, location):
+        return {"kind": kind, "name": name, "quantity": quantity,
+                "rated_capacity": capacity, "capacity_unit": unit,
+                "inspection_status": "제조번호·검사대장·증빙 확인 필요", "location": location}
+
+    shared_notes = (
+        "실재 회사와 무관한 가상 시연용 제원입니다. 인원·수량·예/아니오는 학습을 위한 가정이며 "
+        "실제 법적 적용 판정이 아닙니다. PSM·위험물·유해화학물질·보건 대상 등은 "
+        "업종, 제품별 SDS, 농도·수량, 허가서, 측정자료로 확인해야 하므로 미확인으로 남겼습니다. "
+        "실제 사업장에 사용하려면 예제 이름과 입력값을 실제 자료로 바꾸세요."
+    )
+    specs = [
+        {
+            "demo_id": "pcb", "name": "[가상 예제] PCB 습식공정 공장", "template_id": "pcb",
+            "demo_description": "에칭·세정 공정과 폐수처리시설이 있는 전자기판 공장입니다. 약품·밀폐공간·도급 작업을 함께 검토하는 흐름을 보여줍니다.",
+            "demo_learning_points": ["약품명만으로 법적 분류를 확정하지 않는 방법", "생산동과 유틸리티동의 개별 제원 확인", "폐수조 정비와 도급 작업의 확인자료 찾기"],
+            "industry_name": "가상 전자기판 제조 / 습식 에칭·세정·가공·조립",
+            "building_use": "공장", "building_structure": "복합구조", "permit_status": "사용승인 완료",
+            "headcount": 120, "contractor_workers": 15, "daily_max_people": 85, "daily_shifts": 2,
+            "building_area_m2": 5500, "gross_floor_area_m2": 8500, "ground_floors": 2,
+            "basement_floors": 0, "height_m": 12, "tank_volume_m3": 6,
+            "forklift_count": 2, "electrical_capacity_kw": 2500, "max_work_height_m": 4,
+            "max_storage_height_m": 2.5, "wastewater_m3_day": 180, "air_emission_stack_count": 3,
+            "designated_waste_kg_month": 1200,
+            "confined_space": True, "work_at_height": True, "lifting_work": True,
+            "contractor_work": True, "shift_work": True, "msds_target": True,
+            "wastewater_discharge": True, "air_emission_facility": True, "designated_waste": True,
+            "electrical_work": True, "combustible_storage": True, "fire_system_present": True,
+            "construction_project": False, "new_building": False, "organic_solvents": False,
+            "buildings": [building("가상 생산동", "공장", "철근콘크리트", 6000, 3000, 2, 12),
+                          building("가상 유틸리티·폐수처리동", "공장", "철골", 2500, 2500, 1, 8)],
+            "chemicals": [chemical("가상 산성 에칭액(혼합제품)", 6000, 200, 50000, "조성·농도·혼합물 CAS는 제품 SDS 확인 후 입력."),
+                          chemical("가상 알칼리 세정액(혼합제품)", 1000, 40, 10000, "법정 분류와 취급시설 대상 여부는 별도 확인.")],
+            "equipment": [equipment("공정 설비", "가상 습식 에칭 라인", 2, None, "", "생산동 1층"),
+                          equipment("저장탱크", "가상 에칭액 저장탱크", 1, 6, "㎥", "약품실"),
+                          equipment("폐수처리 설비", "가상 폐수처리 계통", 1, 180, "㎥/일", "유틸리티동"),
+                          equipment("지게차", "가상 전동 지게차", 2, 2.5, "ton", "자재 입출고장")],
+        },
+        {
+            "demo_id": "press", "name": "[가상 예제] 프레스·금속가공 공장", "template_id": "press",
+            "demo_description": "프레스 성형과 기계가공, 자재 하역을 수행하는 자동차 부품 공장입니다. 설비의 정격·수량과 작업 위험을 연결해 봅니다.",
+            "demo_learning_points": ["프레스·크레인 정격과 검사 증빙 입력", "소음 발생과 측정·건강진단 대상 확인의 구분", "지게차·보행자 이동 동선 검토"],
+            "industry_name": "가상 금속 자동차부품 / 프레스 성형·절삭 가공",
+            "building_use": "공장", "building_structure": "철골", "permit_status": "사용승인 완료",
+            "headcount": 70, "contractor_workers": 5, "daily_max_people": 75, "daily_shifts": 1,
+            "building_area_m2": 3000, "gross_floor_area_m2": 4000, "ground_floors": 2,
+            "basement_floors": 0, "height_m": 12, "press_capacity_t": 200, "crane_capacity_t": 5,
+            "forklift_count": 3, "pressure_vessel_volume_m3": 1, "max_pressure_mpa": 0.8,
+            "electrical_capacity_kw": 1000, "max_storage_height_m": 3, "max_work_height_m": 3,
+            "noise_db_a": 87,
+            "dangerous_machines": True, "lifting_work": True, "noise_work": True,
+            "compressed_gas": True, "contractor_work": True, "msds_target": True,
+            "electrical_work": True, "fire_system_present": True, "combustible_storage": True,
+            "construction_project": False, "new_building": False, "confined_space": False,
+            "buildings": [building("가상 프레스·가공동", "공장", "철골", 4000, 3000, 2, 12)],
+            "chemicals": [chemical("가상 수용성 절삭유(사용액)", 500, 10, 2500, "희석비와 공급 제품 SDS를 함께 확인. 소음 87 dB(A)는 측정값 입력 연습용 가정.")],
+            "equipment": [equipment("프레스", "가상 기계식 프레스", 4, 200, "ton", "성형구역"),
+                          equipment("크레인", "가상 천장크레인", 1, 5, "ton", "자재 투입구역"),
+                          equipment("기계가공", "가상 CNC 가공기", 6, None, "", "가공구역"),
+                          equipment("지게차", "가상 전동 지게차", 3, 3, "ton", "자재창고"),
+                          equipment("압력용기", "가상 공기저장조", 1, 1, "㎥", "콤프레서실")],
+        },
+        {
+            "demo_id": "food", "name": "[가상 예제] 식품·음료 공장", "template_id": "food",
+            "demo_description": "음료 혼합·가열·충전과 용기 세척, 포장재 저장을 수행하는 공장입니다. 생산·위생과 보일러·폐수·화재 위험을 함께 살펴봅니다.",
+            "demo_learning_points": ["식품공정과 유틸리티·폐수 작업의 함께 보기", "생산동과 포장재 창고의 건축물별 입력", "세척약품·보일러·물류 설비 목록 작성"],
+            "industry_name": "가상 음료 제조 / 혼합·가열·충전·세척·포장",
+            "processes": ["food", "heat_treatment", "utility", "logistics"],
+            "building_use": "복합용도", "building_structure": "복합구조", "permit_status": "사용승인 완료",
+            "headcount": 160, "contractor_workers": 20, "daily_max_people": 110, "daily_shifts": 2,
+            "building_area_m2": 8000, "gross_floor_area_m2": 13000, "ground_floors": 2,
+            "basement_floors": 0, "height_m": 12, "forklift_count": 4, "boiler_capacity_tph": 3,
+            "max_pressure_mpa": 0.7, "electrical_capacity_kw": 1800, "tank_volume_m3": 10,
+            "max_storage_height_m": 4, "max_work_height_m": 4, "wastewater_m3_day": 90,
+            "food_hygiene_target": True, "combustible_storage": True, "wastewater_discharge": True,
+            "contractor_work": True, "shift_work": True, "lifting_work": True,
+            "msds_target": True, "confined_space": True, "work_at_height": True,
+            "electrical_work": True, "fire_system_present": True, "refrigeration_ammonia": False,
+            "construction_project": False, "new_building": False,
+            "buildings": [building("가상 음료 생산동", "공장", "철근콘크리트", 10000, 5000, 2, 12),
+                          building("가상 포장재 창고", "창고", "철골", 3000, 3000, 1, 10)],
+            "chemicals": [chemical("가상 CIP 세척제(혼합제품)", 600, 20, 5000, "식품 원료와 구분해 약품 목록에 기록. 실제 농도·유해성은 SDS 확인.")],
+            "equipment": [equipment("혼합탱크", "가상 음료 혼합탱크", 3, 10, "㎥", "생산동 1층"),
+                          equipment("충전·포장", "가상 자동 충전 라인", 2, None, "", "생산동 1층"),
+                          equipment("보일러", "가상 스팀보일러", 1, 3, "ton/h", "유틸리티실"),
+                          equipment("지게차", "가상 전동 지게차", 4, 2.5, "ton", "포장재 창고")],
+        },
+        {
+            "demo_id": "warehouse", "name": "[가상 예제] 일반 물류창고", "template_id": "warehouse",
+            "demo_description": "상온의 일반 생활용품·포장재를 랙에 보관하고 지게차로 입출고하는 창고입니다. 제조 약품이 없는 장소의 입력 방식도 비교할 수 있습니다.",
+            "demo_learning_points": ["창고 용도·높이·적재 높이를 구분해 입력", "지게차·랙·도크 작업 위험 확인", "확인한 비해당은 아니오, 모르는 대상 여부는 미확인으로 입력"],
+            "industry_name": "가상 상온 생활용품 보관·입출고 / 제조공정 없음",
+            "building_use": "창고", "building_structure": "철골", "permit_status": "사용승인 완료",
+            "headcount": 35, "contractor_workers": 8, "daily_max_people": 43, "daily_shifts": 1,
+            "building_area_m2": 6000, "gross_floor_area_m2": 6000, "ground_floors": 1,
+            "basement_floors": 0, "height_m": 14, "forklift_count": 6,
+            "electrical_capacity_kw": 450, "max_storage_height_m": 8, "max_work_height_m": 8,
+            "lifting_work": True, "combustible_storage": True, "contractor_work": True,
+            "work_at_height": True, "electrical_work": True, "fire_system_present": True,
+            "msds_target": False, "organic_solvents": False, "confined_space": False,
+            "wastewater_discharge": False, "air_emission_facility": False,
+            "construction_project": False, "new_building": False,
+            "buildings": [building("가상 상온 물류창고", "창고", "철골", 6000, 6000, 1, 14)],
+            "chemicals": [],
+            "equipment": [equipment("지게차", "가상 전동 지게차", 6, 2.5, "ton", "입출고장·랙 통로"),
+                          equipment("저장 랙", "가상 팔레트 랙", 40, 8, "적재 높이(m)", "상온 보관구역"),
+                          equipment("하역 설비", "가상 도크 레벨러", 4, None, "", "출하 도크")],
+        },
+        {
+            "demo_id": "new_factory", "name": "[가상 예제] 공장 신축 현장", "template_id": "new_factory",
+            "demo_description": "철골 공장동을 신축하는 120억 원 규모의 가상 공사입니다. 완공 후 공장 운영 조건과 공사 중 추락·굴착·양중 위험을 구분해 봅니다.",
+            "demo_learning_points": ["공사금액·기간·굴착 깊이·작업 높이 입력", "공사 중 건물의 예정 제원과 인허가 상태 표시", "원도급·수급인 인원과 가설전기·화기작업 확인"],
+            "industry_name": "가상 공장 신축 / 철골·기초·설비 설치 공사",
+            "processes": ["construction", "welding", "logistics"],
+            "building_use": "공장", "building_structure": "철골", "permit_status": "공사 중",
+            "headcount": 90, "contractor_workers": 75, "daily_max_people": 165, "daily_shifts": 1,
+            "building_area_m2": 5000, "gross_floor_area_m2": 10000, "ground_floors": 2,
+            "basement_floors": 0, "height_m": 15, "construction_floor_area_m2": 10000,
+            "construction_cost_krw": 12000000000, "construction_duration_months": 14,
+            "excavation_depth_m": 3, "max_work_height_m": 15, "crane_capacity_t": 25,
+            "forklift_count": 1, "electrical_capacity_kw": 150,
+            "construction_project": True, "new_building": True, "work_at_height": True,
+            "excavation": True, "lifting_work": True, "hot_work": True,
+            "temporary_electricity": True, "contractor_work": True, "electrical_work": True,
+            "sand_dust_work": True, "noise_work": True, "msds_target": True,
+            "combustible_storage": True, "fire_system_present": True, "asbestos_work": False,
+            "buildings": [building("가상 신축 공장동(완공 예정 제원)", "공장", "철골", 10000, 5000, 2, 15, "공사 중")],
+            "chemicals": [chemical("가상 방수·실란트 제품", 120, 5, 1200, "제품별 용제 함유·법정 분류는 SDS로 확인. 연 사용량은 입력 연습을 위한 계획값.")],
+            "equipment": [equipment("이동식 크레인", "가상 이동식 크레인", 1, 25, "ton", "철골 양중구역"),
+                          equipment("고소작업대", "가상 고소작업대", 2, 15, "작업 높이(m)", "철골·지붕 시공구역"),
+                          equipment("지게차", "가상 자재 지게차", 1, 3, "ton", "자재 적치장"),
+                          equipment("가설 배전", "가상 임시 배전반", 3, None, "", "동별 임시 전원구역")],
+        },
+    ]
+    result = []
+    for spec in specs:
+        profile = get_template(spec["template_id"])
+        profile.update(spec)
+        profile.update(uid="demo-" + spec["demo_id"], demo_is_example=True,
+                       template_is_example=True, location="가상 산업단지·현장 (실재 주소 아님)",
+                       profile_notes=shared_notes)
+        result.append(normalize_profile(profile))
+    return result
+
+
 def normalize_profile(data):
     if not isinstance(data, dict):
         raise ValueError("사업장 프로필은 객체 형태여야 합니다.")
@@ -204,6 +370,14 @@ def normalize_profile(data):
         if data.get(key):
             profile[key] = str(data[key])
     profile["template_is_example"] = _flag(data.get("template_is_example")) is True
+    profile["demo_is_example"] = _flag(data.get("demo_is_example")) is True
+    for key in ("demo_id", "demo_description"):
+        if not _missing(data.get(key)):
+            profile[key] = str(data[key]).strip()
+    learning_points = data.get("demo_learning_points", [])
+    if isinstance(learning_points, list):
+        profile["demo_learning_points"] = [str(item).strip() for item in learning_points
+                                           if isinstance(item, str) and item.strip()]
     for key in TEXT_FIELDS:
         if not _missing(data.get(key)):
             profile[key] = str(data[key]).strip()

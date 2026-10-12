@@ -24,13 +24,14 @@ from profiles import (
     PROCESS_OPTIONS,
     TEMPLATE_OPTIONS,
     TEXT_FIELDS,
+    get_demo_profiles,
     get_template,
     normalize_profile,
     validate_profile,
 )
 
 
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.1.0"
 WIDE = {"width": "stretch"} if tuple(int(part) for part in st.__version__.split(".")[:2]) >= (1, 50) else {"use_container_width": True}
 TODAY = datetime.now(ZoneInfo("Asia/Seoul")).date().isoformat()
 TRI_OPTIONS = ["미확인", "예", "아니오"]
@@ -133,11 +134,9 @@ def access_gate() -> None:
 
 def initialize() -> None:
     if "sites" not in st.session_state:
-        profile = normalize_profile(get_template(next(iter(TEMPLATE_OPTIONS))))
-        uid = str(profile.get("uid") or uuid4().hex)
-        profile["uid"] = uid
-        st.session_state["sites"] = {uid: profile}
-        st.session_state["site_selector"] = uid
+        profiles = get_demo_profiles()
+        st.session_state["sites"] = {profile["uid"]: profile for profile in profiles}
+        st.session_state["site_selector"] = profiles[0]["uid"]
     st.session_state.setdefault("revisions", {})
     st.session_state.setdefault("dispositions", {})
     st.session_state.setdefault("amendment_report", None)
@@ -228,6 +227,24 @@ def sidebar() -> str:
             key="site_selector",
         )
         st.caption(f"저장된 사업장 {len(sites)}개 · 현재 브라우저 세션")
+        with st.expander("처음이라면 · 가상 예제 5종", expanded=False):
+            st.write("PCB 약품공정 · 프레스 · 식품 · 물류창고 · 공장 신축 현장")
+            st.caption("예제에는 인원·면적·층수와 물질·설비 명세가 채워져 있습니다. 실제 회사 자료가 아닌 사용 연습용 가정입니다.")
+            if st.button("빠진 가상 예제 추가", key="add_demo_profiles", **WIDE):
+                existing_ids = {item.get("demo_id") for item in sites.values() if item.get("demo_is_example")}
+                added = []
+                for demo in get_demo_profiles():
+                    if demo.get("demo_id") not in existing_ids:
+                        uid = uuid4().hex
+                        store_profile(demo, uid)
+                        added.append(uid)
+                if added:
+                    st.session_state["next_site_selection"] = added[0]
+                    st.session_state["flash"] = f"가상 예제 {len(added)}개를 추가했습니다."
+                else:
+                    st.session_state["flash"] = "가상 예제 5종이 이미 있습니다. 분석할 사업장에서 골라 보세요."
+                st.rerun()
+            st.caption("입력하거나 수정한 사업장은 유지됩니다. 실제 자료를 넣으려면 아래 ‘사업장 추가’를 이용하세요.")
         with st.expander("＋ 사업장 추가", expanded=False):
             with st.form("add_site_form"):
                 template_id = st.selectbox("시작 공정·현장", list(TEMPLATE_OPTIONS), format_func=TEMPLATE_OPTIONS.get)
@@ -329,7 +346,15 @@ def inventory_editor(profile: dict, field: str, columns: dict, key: str, numeric
 def profile_tab(uid: str, profile: dict) -> None:
     st.subheader("사업장 제원과 작업 조건")
     st.caption("건축물대장·설비명세·물질목록·인원현황 등 확인한 자료를 입력하세요. 빈 숫자와 ‘미확인’은 추가 확인 항목으로 남습니다.")
-    if profile.get("template_is_example"):
+    if profile.get("demo_is_example"):
+        st.info("사용 연습용 가상 사업장입니다. 표시된 제원·물질·설비는 설명을 위한 가정이며 실제 회사 자료가 아닙니다.")
+        if profile.get("demo_description"):
+            st.write(profile["demo_description"])
+        with st.expander("이 예제에서 살펴볼 것", expanded=False):
+            for point in profile.get("demo_learning_points", []):
+                st.write(f"• {point}")
+            st.caption("법정 분류·인허가 여부를 모르는 항목은 ‘미확인’으로 두었습니다. 해당 자료가 왜 필요한지 체크리스트의 ‘추가확인’에서 살펴보세요.")
+    elif profile.get("template_is_example"):
         st.info("공정 템플릿에서 시작한 프로필입니다. 템플릿은 실제 회사의 제원을 의미하지 않으며 인원·규모·위험 여부는 직접 확인해 입력해야 합니다.")
     warnings = validate_profile(profile)
     if warnings:
@@ -642,6 +667,8 @@ def main() -> None:
     if "flash" in st.session_state:
         st.success(st.session_state.pop("flash"))
     st.caption(f"현재 사업장: {profile.get('name') or '이름 미입력'} · 공정 {len(profile.get('processes', []))}개 · 확인하지 않은 값은 빈칸으로 유지")
+    if profile.get("demo_is_example"):
+        st.markdown("**처음 사용한다면** 왼쪽에서 예제 선택 → **① 사업장 제원**에서 입력 방식 확인 → **② 체크리스트**에서 항목·근거 확인 → Excel 저장 순서로 살펴보세요.")
     rows = build_checklist(profile)
     tab1, tab2, tab3, tab4 = st.tabs(["① 사업장 제원", "② 체크리스트", "③ 개정 영향성", "근거·사용 안내"])
     with tab1:
