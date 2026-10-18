@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="240" viewBox="0 0 1200 240" role="img" aria-labelledby="ehs-title ehs-desc">
+  <title id="ehs-title">EHS Review Assistant</title>
+  <desc id="ehs-desc">A navy and teal banner illustrating a workflow from a site profile to a review checklist and follow-up.</desc>
+  <rect width="1200" height="240" rx="20" fill="#101F32"/>
+  <rect x="64" y="47" width="49" height="5" rx="2.5" fill="#4CD3C0"/>
+  <g font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <text x="64" y="110" fill="#F5F8FC" font-size="40" font-weight="700" letter-spacing="0.4">EHS REVIEW ASSISTANT</text>
+    <text x="66" y="161" fill="#B8C8D8" font-size="22">Site profile <tspan fill="#70DFCE">→</tspan> Review checklist <tspan fill="#70DFCE">→</tspan> Follow-up</text>
+  </g>
+  <g transform="translate(911 45)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="0" y="22" width="94" height="119" rx="10" fill="#182B40" stroke="#3B5269" stroke-width="2"/>
+    <path d="M23 56h48M23 77h48M23 98h31" stroke="#8EA6BB" stroke-width="4"/>
+    <path d="M112 81h21m-7-7 7 7-7 7" stroke="#EDB36B" stroke-width="3"/>
+    <rect x="151" y="0" width="92" height="141" rx="10" fill="#182B40" stroke="#3B5269" stroke-width="2"/>
+    <path d="m167 39 5 5 9-12m-14 40 5 5 9-12m-14 40 5 5 9-12" stroke="#70DFCE" stroke-width="4"/>
+    <path d="M195 39h29M195 72h29M195 105h20" stroke="#8EA6BB" stroke-width="4"/>
+  </g>
+</svg>
